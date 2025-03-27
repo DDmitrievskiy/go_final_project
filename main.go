@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	_ "modernc.org/sqlite"
 )
@@ -23,26 +24,20 @@ func main() {
 
 	port := getPort()
 
-	http.Handle("/", http.FileServer(http.Dir("./web")))
-	http.HandleFunc("/api/nextdate", NextDateHandler)
-	http.HandleFunc("/api/tasks", getTasksHandler)
-	http.HandleFunc("/api/task/done", markTaskDoneHandler)
-	http.HandleFunc("/api/task", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPost:
-			addTaskHandler(w, r)
-		case http.MethodGet:
-			getTaskHandler(w, r)
-		case http.MethodPut:
-			updateTaskHandler(w, r)
-		case http.MethodDelete:
-			deleteTaskHandler(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
+	r := mux.NewRouter()
+
+	r.HandleFunc("/api/nextdate", NextDateHandler).Methods("GET")
+	r.HandleFunc("/api/tasks", getTasksHandler).Methods("GET")
+	r.HandleFunc("/api/task/done", markTaskDoneHandler).Methods("POST")
+	r.HandleFunc("/api/task", addTaskHandler).Methods("POST")
+	r.HandleFunc("/api/task", getTaskHandler).Methods("GET")
+	r.HandleFunc("/api/task", updateTaskHandler).Methods("PUT")
+	r.HandleFunc("/api/task", deleteTaskHandler).Methods("DELETE")
+
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./web")))
+
 	log.Printf("Сервер запущен на порту %d\n", port)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), r))
 }
 
 func getPort() int {

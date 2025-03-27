@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const dateFormat = "20060102"
+
 var (
 	ErrInvalidFormat   = errors.New("неверный формат правила")
 	ErrInvalidDate     = errors.New("некорректная дата")
@@ -18,7 +20,7 @@ var (
 )
 
 func NextDate(now time.Time, dateStr string, repeat string) (string, error) {
-	date, err := time.Parse("20060102", dateStr)
+	date, err := time.Parse(dateFormat, dateStr)
 	if err != nil {
 		return "", ErrInvalidDate
 	}
@@ -28,7 +30,7 @@ func NextDate(now time.Time, dateStr string, repeat string) (string, error) {
 	}
 
 	if repeat == "d 1" && !date.After(now) {
-		return now.Format("20060102"), nil
+		return now.Format(dateFormat), nil
 	}
 
 	parts := strings.Fields(repeat)
@@ -70,7 +72,7 @@ func handleDailyRule(now, date time.Time, parts []string) (string, error) {
 			break
 		}
 	}
-	return next.Format("20060102"), nil
+	return next.Format(dateFormat), nil
 }
 
 func handleYearlyRule(now, date time.Time) (string, error) {
@@ -90,7 +92,7 @@ func handleYearlyRule(now, date time.Time) (string, error) {
 			break
 		}
 	}
-	return next.Format("20060102"), nil
+	return next.Format(dateFormat), nil
 }
 
 func isLeap(year int) bool {
@@ -120,7 +122,7 @@ func handleWeeklyRule(now, date time.Time, parts []string) (string, error) {
 			weekday = 7
 		}
 		if contains(days, weekday) && next.After(now) {
-			return next.Format("20060102"), nil
+			return next.Format(dateFormat), nil
 		}
 		next = next.AddDate(0, 0, 1)
 	}
@@ -133,7 +135,7 @@ func handleMonthlyRule(now, date time.Time, parts []string) (string, error) {
 		return "", ErrInvalidFormat
 	}
 
-	days, err := parseDays(parts[1], -31, 31)
+	days, err := parseDays(parts[1], -2, 31)
 	if err != nil {
 		return "", ErrInvalidDay
 	}
@@ -148,7 +150,6 @@ func handleMonthlyRule(now, date time.Time, parts []string) (string, error) {
 
 	next := date.AddDate(0, 0, 1)
 	for i := 0; i < 366*3; i++ {
-
 		if len(months) > 0 && !contains(months, int(next.Month())) {
 			next = time.Date(next.Year(), next.Month()+1, 1, 0, 0, 0, 0, time.UTC)
 			continue
@@ -161,20 +162,16 @@ func handleMonthlyRule(now, date time.Time, parts []string) (string, error) {
 
 			if d < 0 {
 				targetDay = lastDay + d + 1
-				if targetDay < 1 {
-					return "", fmt.Errorf("%w: %d для %s",
-						ErrInvalidDay, d, next.Format("2006-01"))
-				}
 			} else {
 				targetDay = d
 			}
 
-			if targetDay < 1 || targetDay > lastDay {
+			if targetDay > lastDay || targetDay < 1 {
 				continue
 			}
 
 			if next.Day() == targetDay && next.After(now) {
-				return next.Format("20060102"), nil
+				return next.Format(dateFormat), nil
 			}
 		}
 

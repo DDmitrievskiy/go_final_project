@@ -1,4 +1,4 @@
-FROM golang:latest AS builder
+FROM golang:1.22.5 AS builder
 
 WORKDIR /app
 COPY . .
@@ -6,7 +6,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o scheduler
 
 
-FROM ubuntu:latest
+FROM alpine:latest
 
 WORKDIR /app
 COPY --from=builder /app/scheduler .
